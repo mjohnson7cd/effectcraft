@@ -308,7 +308,7 @@ pub(crate) fn export_items(ex: &mut Ex, contents: &PropGroup, label: &str) -> Ve
             "op" => {
                 o.put("a", "amount", &anim::num);
                 o.raw("lj", json!(o.e("join") + 1));
-                o.raw("ml", json!(o.f("miter")));
+                o.put("ml", "miter", &anim::num);
                 if (o.f("copies") - 1.0).abs() > 1e-9 || o.animated("copies") || o.f("copyOffset") != 0.0 {
                     o.ex.warn(format!("{lbl}: Offset Paths copies are not part of Lottie (one copy exported)"));
                 }

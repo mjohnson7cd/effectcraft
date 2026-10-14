@@ -58,3 +58,27 @@ fn lottie_menu_entries_exist() {
     assert_eq!(find("file.exportLottie"), Some(("File > Export".into(), "Lottie JSON...".into())));
     assert_eq!(find("file.importLottie"), Some(("File > Import".into(), "Lottie...".into())));
 }
+
+#[test]
+fn offset_paths_miter_limit_is_animatable() {
+    let mut s = session();
+    s.execute("layer.newShape", json!({"kind": "rect", "size": [100, 100]})).unwrap();
+    let off = s.execute("layer.addShapeItem", json!({"layer": "#1", "kind": "offset", "group": "contents/group"})).unwrap();
+    let path = off["path"].as_str().unwrap();
+    s.execute("prop.set", json!({"layer": "#1", "path": format!("{}/amount", path), "value": -4})).unwrap();
+    s.execute("prop.set", json!({"layer": "#1", "path": format!("{}/miter", path), "value": 8})).unwrap();
+    let export_path = tmp("offset.json");
+    s.execute("file.exportLottie", json!({"path": &export_path})).unwrap();
+    let doc: Value = serde_json::from_slice(&std::fs::read(&export_path).unwrap()).unwrap();
+    let shapes = &doc["layers"][0]["shapes"];
+    // Find Offset Paths inside the shape group's items
+    let op = shapes.as_array().unwrap().iter()
+        .flat_map(|g| g["it"].as_array())
+        .flatten()
+        .find(|s| s["ty"] == "op")
+        .expect("Offset Paths shape not found");
+    // ml must be {"a": 0, "k": 8}, not just 8
+    assert!(op["ml"].is_object(), "ml is not an animatable value: {:?}", op["ml"]);
+    assert_eq!(op["ml"]["a"], json!(0));
+    assert_eq!(op["ml"]["k"], json!(8.0));
+}
